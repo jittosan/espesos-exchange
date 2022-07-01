@@ -15,9 +15,7 @@ PORT = 8000
 
 
 # import dependencies
-from flask import Flask
-
-
+from flask import Flask, request
 
 app = Flask(__name__)
 
@@ -32,7 +30,7 @@ def transact():
     return "<h1>Transact ESPesos</h1>"
 
 # Account Info
-@app.route("/account/")
+@app.route("/account/", methods=['GET', 'POST'])
 def account():
     return "<h1>ESPesos Account Information</h1>"
 
