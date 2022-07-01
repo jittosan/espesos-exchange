@@ -14,6 +14,30 @@ class ExchangeDatabase():
         self._cursor = None
         self.connect()
 
+    def parse_account(self, query_value):
+        if query_value == []:
+            values = {}
+        else:
+            values ={
+                'token': query_value[0][0],
+                'name': query_value[0][1],
+                'fingerprint': query_value[0][2],
+                'balance': float(query_value[0][3])
+            }
+        return values
+
+    def parse_transaction(self, query_value):
+        if query_value == []:
+            values = {}
+        else:
+            values ={
+                'transaction_id': int(query_value[0][0]),
+                'sender_token': query_value[0][1],
+                'recipient_token': query_value[0][2],
+                'amount': float(query_value[0][3])
+            }
+        return values
+
     def connect(self):
         #return True if already connected
         if self.connected():
@@ -64,9 +88,12 @@ class ExchangeDatabase():
             print("Execution Failed : " + command_string)
             print(e)
         finally:
-            return results  
+            return results != None  
 
     def commit(self):
+        if not self.connected():
+            return False
+
         self._db.commit()
         return True
 
@@ -81,13 +108,23 @@ class ExchangeDatabase():
         return self.execute("DELETE * from accounts WHERE token='{token}'".format(token=token))
 
     def get_account(self, token):
-        return self.query("SELECT * from accounts WHERE token='{token}'".format(token=token))
+        return self.parse_account(self.query("SELECT * from accounts WHERE token='{token}'".format(token=token)))
+
+    def get_account_balance(self, token):
+        results = self.get_account(token)
+        if results == {}:
+            return None
+        else:
+            return results['balance']
 
     def search_account(self, name):
-        return self.query("SELECT * from accounts WHERE name='{name}'".format(name=name))
+        return self.parse_account(self.query("SELECT * from accounts WHERE name='{name}'".format(name=name)))
 
-    def transact(self, values):
+    def add_transaction(self, values):
         pass
+
+    def remove_transaction(self, transaction_id):
+        return self.query("DELETE * from transactions WHERE transaction_id='{transaction_id}'".format(transaction_id=transaction_id))
 
     def get_transaction(self, transaction_id):
         return self.query("SELECT * from transactions WHERE transaction_id='{transaction_id}'".format(transaction_id=transaction_id))
@@ -95,8 +132,20 @@ class ExchangeDatabase():
     def find_transaction(self, sender_token, recipient_token):
         return self.query("SELECT * from transactions WHERE sender_token='{sender_token}' & recipient_token='{recipient_token}'".format(sender_token=sender_token, recipient_token=recipient_token))
 
+    def update_account_balance(self, token, delta):
+        if not self.connected():
+            return False
+
+        #query db, return False if no records found
+        old_balance = self.get_account_balance(token)
+        if old_balance == None:
+            return False
+
+        new_balance = old_balance + delta
+        return self.execute("UPDATE accounts SET balance='{new_balance}' WHERE token='{token}'".format(token=token, new_balance=new_balance))
+
 ## test zone
 ex = ExchangeDatabase()
-# ex.query('CREATE TABLE ACCOUNTS (token TEXT PRIMARY KEY , fingerprint TEXT, name TEXT, balance NUMERIC)')
-print(ex.get_account("B"))
+print(ex.get_account("A"))
+print(ex.update_account_balance("A", 0.05))
 ex.disconnect()
