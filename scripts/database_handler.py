@@ -3,7 +3,7 @@ DATABASE FUNCTIONS
 
 '''
 ## CONFIGURATION PARAMETERS
-PATH_TO_DATA = "../data"
+PATH_TO_DATA = "../data/"
 EXCHANGE_DATABASE = "exchange.db"
 
 #import dependencies
@@ -29,31 +29,56 @@ class ExchangeDatabase():
             return False
 
     def disconnect(self):
+        self.commit()
         self._db.close()
+        print("Exchange Database disconnected successfully.\n")
         return True
 
     def connected(self):
         return self._db != None
 
     def query(self, query_string):
+        #check if database already connected
+        if not self.connected():
+            return False
+        
         results = None
         try:
-            results = self._cursor.execute(query_string)
+            self._cursor.execute(query_string)
+            results = self._cursor.fetchall()
         except sq.Error as e:
             print("Query Failed : " + query_string)
             print(e)
         finally:
             return results   
 
+    def execute(self, command_string):
+        #check if database already connected
+        if not self.connected():
+            return False
+        
+        results = None
+        try:
+            results = self._cursor.execute(command_string)
+        except sq.Error as e:
+            print("Execution Failed : " + command_string)
+            print(e)
+        finally:
+            return results  
+
+    def commit(self):
+        self._db.commit()
+        return True
+
     def add_account(self, values):
         #check all fields have been input
         # if not values.has_key('token') or not values.has_key('name') or not values.has_key('fingerprint') or not values.has_key('balance'):
         #     return False
-        self.query("INSERT INTO accounts VALUES ('{token}', '{name}', '{fingerprint}', {balance})".format(
+        self.execute("INSERT INTO accounts VALUES ('{token}', '{name}', '{fingerprint}', {balance})".format(
             token=values['token'], name=values['name'], fingerprint=values['fingerprint'], balance=values['balance']))
 
     def remove_account(self, token):
-        return self.query("DELETE * from accounts WHERE token='{token}'".format(token=token))
+        return self.execute("DELETE * from accounts WHERE token='{token}'".format(token=token))
 
     def get_account(self, token):
         return self.query("SELECT * from accounts WHERE token='{token}'".format(token=token))
@@ -72,6 +97,6 @@ class ExchangeDatabase():
 
 ## test zone
 ex = ExchangeDatabase()
-ex.add_account({'token':'A1', 'fingerprint':'A', 'name':"Johnny", "balance":10.0})
-print(ex.get_account("A1"))
-print(ex.query("SELECT * from transactions"))
+# ex.query('CREATE TABLE ACCOUNTS (token TEXT PRIMARY KEY , fingerprint TEXT, name TEXT, balance NUMERIC)')
+print(ex.get_account("B"))
+ex.disconnect()
