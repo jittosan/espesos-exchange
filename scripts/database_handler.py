@@ -107,7 +107,7 @@ class ExchangeDatabase():
         #check all fields have been input
         # if not values.has_key('token') or not values.has_key('name') or not values.has_key('fingerprint') or not values.has_key('balance'):
         #     return False
-        self.execute("INSERT INTO accounts VALUES ('{token}', '{name}', '{fingerprint}', {balance})".format(
+        return self.execute("INSERT INTO accounts VALUES ('{token}', '{name}', '{fingerprint}', {balance})".format(
             token=values['token'], name=values['name'], fingerprint=values['fingerprint'], balance=values['balance']))
 
     def remove_account(self, token):
@@ -139,16 +139,17 @@ class ExchangeDatabase():
         return self.parse_account(self.query("SELECT * from accounts WHERE name='{name}'".format(name=name)))
 
     def add_transaction(self, values):
-        pass
+        return self.execute("INSERT INTO transactions VALUES ('{sender_token}', '{recipient_token}', '{amount}')".format(
+            sender_token=values['sender_token'], recipient_token=values['recipient_token'], amount=values['amount']))
 
     def remove_transaction(self, transaction_id):
         return self.query("DELETE * from transactions WHERE transaction_id='{transaction_id}'".format(transaction_id=transaction_id))
 
     def get_transaction(self, transaction_id):
-        return self.query("SELECT * from transactions WHERE transaction_id='{transaction_id}'".format(transaction_id=transaction_id))
+        return self.parse_transaction(self.query("SELECT * from transactions WHERE transaction_id='{transaction_id}'".format(transaction_id=transaction_id)))
 
     def find_transaction(self, sender_token, recipient_token):
-        return self.query("SELECT * from transactions WHERE sender_token='{sender_token}' & recipient_token='{recipient_token}'".format(sender_token=sender_token, recipient_token=recipient_token))
+        return self.parse_transaction(self.query("SELECT * from transactions WHERE sender_token='{sender_token}' & recipient_token='{recipient_token}'".format(sender_token=sender_token, recipient_token=recipient_token)))
 
 ## test zone
 ex = ExchangeDatabase()
