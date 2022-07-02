@@ -72,7 +72,6 @@ class ExchangeDatabase():
     def commit(self):
         if not self.connected():
             return False
-
         self._db.commit()
         return True
 
@@ -162,9 +161,9 @@ class ExchangeDatabase():
 
     def add_transaction(self, values):
         #check all fields have been input
-        if not check_keys(values, ['sendertoken', 'recipient_token', 'amount']):
+        if not check_keys(values, ['sender_token', 'recipient_token', 'amount']):
             return False
-        return self.execute("INSERT INTO transactions VALUES ('{sender_token}', '{recipient_token}', '{amount}')".format(
+        return self.execute("INSERT INTO transactions (sender_token, recipient_token, amount) VALUES ('{sender_token}', '{recipient_token}', '{amount}')".format(
             sender_token=values['sender_token'], recipient_token=values['recipient_token'], amount=values['amount']))
 
     def remove_transaction(self, transaction_id):
