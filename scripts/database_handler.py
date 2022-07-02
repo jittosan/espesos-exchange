@@ -8,6 +8,7 @@ EXCHANGE_DATABASE = "exchange.db"
 
 #import dependencies
 import sqlite3 as sq
+from utils import *
 class ExchangeDatabase():
     def __init__(self):
         self._db = None
@@ -101,12 +102,12 @@ class ExchangeDatabase():
             }
         return values
 
-    ## interface methods
+    ## account interface methods
 
     def add_account(self, values):
         #check all fields have been input
-        # if not values.has_key('token') or not values.has_key('name') or not values.has_key('fingerprint') or not values.has_key('balance'):
-        #     return False
+        if not check_keys(values, ['token', 'name', 'fingerprint', 'balance']):
+            return False
         return self.execute("INSERT INTO accounts VALUES ('{token}', '{name}', '{fingerprint}', {balance})".format(
             token=values['token'], name=values['name'], fingerprint=values['fingerprint'], balance=values['balance']))
 
@@ -115,6 +116,22 @@ class ExchangeDatabase():
 
     def get_account(self, token):
         return self.parse_account(self.query('SELECT * from accounts WHERE token="{token}"'.format(token=token)))
+
+    def get_account_info(self, token):
+        results = self.get_account(token)
+        if results != {}:
+            del results['fingerprint']
+        return results
+
+    def check_account(self, token):
+        return self.query('SELECT * from accounts WHERE token="{token}"'.format(token=token)) != []
+
+    def verify_fingerprint(self, token, fingerprint):
+        results = self.get_account(token)
+        if results != {}:
+            return fingerprint == results['fingerprint']
+        else:
+            return False
 
     def get_account_balance(self, token):
         results = self.get_account(token)
@@ -135,10 +152,18 @@ class ExchangeDatabase():
         new_balance = old_balance + delta
         return self.execute("UPDATE accounts SET balance='{new_balance}' WHERE token='{token}'".format(token=token, new_balance=new_balance))
 
+    def check_account_balance(self, token, amount):
+        return self.get_account_balance(token) >= amount
+
     def search_account(self, name):
         return self.parse_account(self.query("SELECT * from accounts WHERE name='{name}'".format(name=name)))
 
+    ## transaction interface methods
+
     def add_transaction(self, values):
+        #check all fields have been input
+        if not check_keys(values, ['sendertoken', 'recipient_token', 'amount']):
+            return False
         return self.execute("INSERT INTO transactions VALUES ('{sender_token}', '{recipient_token}', '{amount}')".format(
             sender_token=values['sender_token'], recipient_token=values['recipient_token'], amount=values['amount']))
 
@@ -150,9 +175,3 @@ class ExchangeDatabase():
 
     def find_transaction(self, sender_token, recipient_token):
         return self.parse_transaction(self.query("SELECT * from transactions WHERE sender_token='{sender_token}' & recipient_token='{recipient_token}'".format(sender_token=sender_token, recipient_token=recipient_token)))
-
-## test zone
-ex = ExchangeDatabase()
-print(ex.get_account("A"))
-# print(ex.update_account_balance("A", 0.05))
-ex.disconnect()
