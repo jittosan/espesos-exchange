@@ -11,7 +11,7 @@ API endpoints process transactions with database
 
 ##  SERVER CONFIGURATION
 PORT = 8000
-DEV_ENV = True
+PRODUCTION_SERVER = True
 
 # import dependencies
 from flask import Flask, request, json
@@ -67,7 +67,8 @@ def transact():
             exchange.update_account_balance(sender_token, amount*-1)
             exchange.update_account_balance(recipient_token, amount)
             #commit changes in production
-            if not DEV_ENV:exchange.commit()
+            if PRODUCTION_SERVER:
+                exchange.commit()
             output['status'] = 200
     #return response
     return output
