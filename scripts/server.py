@@ -11,20 +11,12 @@ API endpoints process transactions with database
 
 ##  SERVER CONFIGURATION
 PORT = 8000
+DEV_ENV = True
 
 # import dependencies
 from flask import Flask, request, json
 from database_handler import ExchangeDatabase
-from server_utils import *
-
-# define utility functions
-def check_keys(data, keys=[]):
-    # return False if any key is missing
-    for item in keys:
-        if item not in data:
-            return False
-    # return True if all keys present
-    return True
+from utils import *
 
 # initalise app
 app = Flask(__name__)
@@ -38,34 +30,65 @@ def home():
 # Transaction
 @app.route("/transaction/", methods=['POST'])
 def transact():
-    #invalid format error
-    #verify both tokens valid
-    #check sender account enough balance
+    data = json.loads(request.data)
+    output = {}
     
-    return "<h1>Transact ESPesos</h1>"
+    #token not found
+    if not check_keys(data, ['sender_token', 'recipient_token', 'amount']):
+        output['status'] = 400
+        output['error'] = 'Incomplete data fields entered'
+    else:
+        sender_token = data['sender_token']
+        recipient_token = data['recipient_token']
+        amount = float(data['amount'])
+        # both tokens do not exist
+        if not exchange.check_account(sender_token) or not exchange.check_account(recipient_token):
+            output['status'] = 404
+            output['error'] = 'Invalid tokens - not found'
+        #sender and recipient are identical
+        elif sender_token == recipient_token:
+            output['status'] = 400
+            output['error'] = 'Invalid tokens - repeated'
+        #negative amounts entered
+        elif amount < 0:
+            output['status'] = 404
+            output['error'] = 'Invalid amount'
+        #check sender account enough balance
+        elif not exchange.check_account_balance(sender_token, amount):
+            output['status'] = 401
+            output['error'] = 'Insufficient funds'
+        else:
+            #execute transaction
+            exchange.add_transaction({
+                'sender_token':sender_token,
+                'recipient_token':recipient_token,
+                'amount':amount
+            })
+            exchange.update_account_balance(sender_token, amount*-1)
+            exchange.update_account_balance(recipient_token, amount)
+            #commit changes in production
+            if not DEV_ENV:exchange.commit()
+            output['status'] = 200
+    #return response
+    return output
 
 # Account Info
 @app.route("/account/", methods=['POST'])
 def account():
-    print("ACCOUNT ENDPOINT")
     data = json.loads(request.data)
     output = {}
     #token not found
     if not check_keys(data, ['token']):
-        print("TOKEN NOT FOUND")
         output['status'] = 400
         output['error'] = 'No token found'
     else:
-        print("TOKEN found")
         token = data['token']
-        results = exchange.get_account(token)
         #token found, but invalid
-        if results == {}:
-            print("TOKEN INVALID")
+        if not exchange.check_account(token): 
             output['status'] = 404
             output['error'] = 'Invalid token'
         else:
-            output = results
+            output = exchange.get_account(token)
             output['status'] = 200
     #return response
     return output
