@@ -15,7 +15,18 @@ PORT = 8000
 # import dependencies
 from flask import Flask, request, json
 from database_handler import ExchangeDatabase
+from server_utils import *
 
+# define utility functions
+def check_keys(data, keys=[]):
+    # return False if any key is missing
+    for item in keys:
+        if item not in data:
+            return False
+    # return True if all keys present
+    return True
+
+# initalise app
 app = Flask(__name__)
 exchange = ExchangeDatabase()
 
@@ -36,16 +47,28 @@ def transact():
 # Account Info
 @app.route("/account/", methods=['POST'])
 def account():
+    print("ACCOUNT ENDPOINT")
     data = json.loads(request.data)
     output = {}
     #token not found
-    if "token" not in data.keys():
-        output = {'error': 'No token found'}
+    if not check_keys(data, ['token']):
+        print("TOKEN NOT FOUND")
+        output['status'] = 400
+        output['error'] = 'No token found'
     else:
-        #check for invalid token
+        print("TOKEN found")
         token = data['token']
-        print("Token Found: " + token)
-        output = exchange.get_account(token)
+        results = exchange.get_account(token)
+        #token found, but invalid
+        if results == {}:
+            print("TOKEN INVALID")
+            output['status'] = 404
+            output['error'] = 'Invalid token'
+        else:
+            output = results
+            output['status'] = 200
+    #return response
     return output
 
+# run server
 app.run(port=PORT)
