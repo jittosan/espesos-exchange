@@ -22,7 +22,7 @@ class ExchangeDatabase():
         if self.connected():
             return True
         try:
-            self._db = sq.connect(PATH_TO_DATA + EXCHANGE_DATABASE, check_same_thread=False)
+            self._db = sq.connect(PATH_TO_DATA + EXCHANGE_DATABASE, check_same_thread=True)
             self._cursor = self._db.cursor()
             print("Exchange Database connected successfully.")
             return True
@@ -34,6 +34,8 @@ class ExchangeDatabase():
     def disconnect(self):
         self.commit()
         self._db.close()
+        self._db = None
+        self._cursor = None
         print("Exchange Database disconnected successfully.\n")
         return True
 

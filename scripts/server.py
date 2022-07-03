@@ -20,7 +20,6 @@ from utils import *
 
 # initalise app
 app = Flask(__name__)
-exchange = ExchangeDatabase()
 
 # Home
 @app.route("/")
@@ -32,6 +31,7 @@ def home():
 def transact():
     data = json.loads(request.data)
     output = {}
+    exchange = ExchangeDatabase()
     
     #token not found
     if not check_keys(data, ['sender_token', 'recipient_token', 'amount']):
@@ -71,13 +71,18 @@ def transact():
                 exchange.commit()
             output['status'] = 200
     #return response
+    exchange.disconnect()
     return output
 
 # Account Info
 @app.route("/account/", methods=['POST'])
 def account():
     data = json.loads(request.data)
+    print(data)
+    print()
     output = {}
+    exchange = ExchangeDatabase()
+
     #token not found
     if not check_keys(data, ['token']):
         output['status'] = 400
@@ -89,9 +94,13 @@ def account():
             output['status'] = 404
             output['error'] = 'Invalid token'
         else:
+            print("LOADING TOKEN : "+token)
             output = exchange.get_account(token)
             output['status'] = 200
+            if PRODUCTION_SERVER:
+                exchange.commit()
     #return response
+    exchange.disconnect()
     return output
 
 # run server
